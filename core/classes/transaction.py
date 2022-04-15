@@ -35,6 +35,7 @@ class AddEmployeeTransactionABC(DatabaseBoundTransactionABC, ABC):
         self.__emp_id = emp_id
         self.__name = name
         self.__address = address 
+
         super().__init__(database)
     
     @abstractmethod
@@ -78,16 +79,17 @@ class AddHourlyEmployeeTransaction(AddEmployeeTransactionABC):
         return WeeklySchedule()
 
 class AddCommissionedEmployeeTransaction(AddEmployeeTransactionABC):
-    def __init__(self, emp_id: int, name: str, address: str, database: PayrollDatabaseABC, commission_rate: float, salary: float) -> AddCommissionedEmployeeTransaction:
+    def __init__(self, emp_id: int, name: str, address: str, database: PayrollDatabaseABC, commission_rate: float, salary: float, work_start_date: date) -> AddCommissionedEmployeeTransaction:
         self.__commission_rate = commission_rate
         self.__salary = salary
+        self.__work_start_date = work_start_date
         super().__init__(emp_id, name, address, database)
 
     def _make_clasification(self):
         return CommissionedClassification(self.__commission_rate, self.__salary)
     
     def _make_schedule(self):
-        return BeweeklySchedule()
+        return BeweeklySchedule(self.__work_start_date)
 
 class AddTimeCardTransaction(DatabaseBoundTransactionABC):
     def __init__(self, date: date, hours: float, emp_id: int, database: PayrollDatabaseABC) -> AddTimeCardTransaction:
@@ -224,16 +226,17 @@ class ChangeSalariedTransaction(ChangeClassificationTransactionABC):
         return MonthlySchedule()
 
 class ChangeCommissionedTransaction(ChangeClassificationTransactionABC):
-    def __init__(self, database, emp_id: int, salary: float, commission_rate: float) -> None:
+    def __init__(self, database, emp_id: int, salary: float, commission_rate: float, work_start_date: date) -> None:
         self.__salary = salary
         self.__commission_rate = commission_rate
+        self.__work_start_date = work_start_date
         super().__init__(database, emp_id)
 
     def _get_classification(self) -> PaymentClassificationABC:
         return CommissionedClassification(self.__commission_rate, self.__salary)
 
     def _get_schedule(self) -> PaymentScheduleABC:
-        return BeweeklySchedule()
+        return BeweeklySchedule(self.__work_start_date)
 
 class ChageMethodTransactionABC(ChangeEmployeeTransactionABC, ABC):
     def __init__(self, database, emp_id: int) -> ChageMethodTransactionABC:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import datetime
+import calendar
 from re import S
 import core.classes.doc as doc
 
@@ -58,7 +59,7 @@ class HourlyClassification(PaymentClassificationABC):
         return total_pay
 
     def __calculate_pay_for_time_card(self, time_card):
-        overtime_hours = max(0.0, time_card.hours)
+        overtime_hours = max(0.0, time_card.hours - 8.0)
         normal_hours = time_card.hours - overtime_hours
         return self.__hourly_rate * normal_hours + self.__hourly_rate * 1.5 * overtime_hours
 
@@ -86,4 +87,11 @@ class CommissionedClassification(PaymentClassificationABC):
         return self.__sales_receipts.get(date, None)
 
     def calculate_pay(self, paycheck: doc.Paycheck) -> float:
-        return None
+        total_pay = self.__salary
+        sales_receipt_date = paycheck.pay_period.start_date
+        while sales_receipt_date <= paycheck.pay_period.end_date:
+            sales_receipt = self.get_sales_receipt(sales_receipt_date)
+            if sales_receipt is not None:
+                total_pay += sales_receipt.amount * self.__commission_rate
+            sales_receipt_date += datetime.timedelta(days=1)   
+        return total_pay

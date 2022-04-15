@@ -1,7 +1,5 @@
 from __future__ import annotations
 from datetime import date, timedelta
-import re
-from tkinter.messagebox import NO
 from core.classes.affiliation import UnionAffiliation
 from core.classes.doc import Paycheck
 from core.classes.paymentclassification import PaymentClassificationABC

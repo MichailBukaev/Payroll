@@ -37,11 +37,28 @@ class WeeklySchedule(PaymentScheduleABC):
         return pay_data.weekday() == 4 #Friday
     
     def get_pay_period_start_date(self, pay_data: date) -> date:
-        return pay_data - timedelta(weeks=1)
+        return pay_data - timedelta(weeks=1) + timedelta(days=1)
 
 class BeweeklySchedule(PaymentScheduleABC):
+    def __init__(self, work_start_date: date) -> None:
+        if type(work_start_date) is date:
+            self.__work_start_date = work_start_date
+        else:
+            raise TypeError('Invalid type of argument \"work_start_date\".')
+        super().__init__()
+    
+    @property
+    def work_start_date(self):
+        return self.__work_start_date
+
     def is_pay_date(self, pay_data: date) -> bool:
-        pass
+        if (self.__work_start_date > pay_data):
+            return False
+        weeks_count = math.ceil(((pay_data - self.__work_start_date).days + 1) / 7)
+        return weeks_count % 2 == 0 and pay_data.weekday() == 4 #Friday
 
     def get_pay_period_start_date(self, pay_data: date) -> date:
-        return pay_data - timedelta(weeks=2)
+        pay_period_start_date = pay_data - timedelta(weeks=2) + timedelta(days=1)
+        if(pay_period_start_date < self.__work_start_date):
+            pay_period_start_date = self.__work_start_date
+        return pay_period_start_date

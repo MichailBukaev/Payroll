@@ -93,5 +93,5 @@ class CommissionedClassification(PaymentClassificationABC):
             sales_receipt = self.get_sales_receipt(sales_receipt_date)
             if sales_receipt is not None:
                 total_pay += sales_receipt.amount * self.__commission_rate
-            sales_receipt_date += datetime.timedelta(days=1)   
+            sales_receipt_date += datetime.timedelta(days=1)
         return total_pay

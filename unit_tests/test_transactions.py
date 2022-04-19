@@ -505,6 +505,79 @@ class Test_TestAddEmployee(unittest.TestCase):
         expected_pay = 540
         self.__validate_pay_check(payday_t, emp_id, pay_date, period_start_date, expected_pay, expected_pay, 0.0)
 
+    def test_salaried_union_member_dues(self):
+        emp_id = 32
+        add_salaried_emp_t = t.AddSalariedEmployeeTransaction(emp_id, 'Bill', 'Home', self.__db, 1000.00)
+        add_salaried_emp_t.execute()
+        member_id = 7734
+        change_member_t = t.ChangeMemberTransaction(self.__db, emp_id, member_id, 9.42)
+        change_member_t.execute()
+        pay_date = date(2001, 11, 30)
+        payday_t = t.PaydayTransaction(self.__db, pay_date)
+        payday_t.execute()
+        self.__validate_pay_check(
+            payday_t=payday_t,
+            emp_id=emp_id,
+            pay_date=pay_date,
+            start_date=date(2001, 11, 1),
+            gross_pay=1000.00,
+            net_pay=1000.00 - (9.42 * 5),
+            deductions=9.42 * 5
+        )
+
+    def test_hourly_union_member_service_charge(self):
+        emp_id = 33
+        add_salaried_emp_t = t.AddHourlyEmployeeTransaction(emp_id, 'Bill', 'Home', self.__db, 15.24)
+        add_salaried_emp_t.execute()
+        member_id = 7735
+        change_member_t = t.ChangeMemberTransaction(self.__db, emp_id, member_id, 9.42)
+        change_member_t.execute()
+        pay_date = date(2001, 11, 30)
+        add_service_charge_t = t.AddServiceChargeTransaction(self.__db, pay_date, 19.42, member_id)
+        add_service_charge_t.execute()
+        add_time_card_t = t.AddTimeCardTransaction(pay_date, 8.0, emp_id, self.__db)
+        add_time_card_t.execute()
+        payday_t = t.PaydayTransaction(self.__db, pay_date)
+        payday_t.execute()
+        self.__validate_pay_check(
+            payday_t=payday_t,
+            emp_id=emp_id,
+            pay_date=pay_date,
+            start_date=date(2001, 11, 24),
+            gross_pay=(8 * 15.24),
+            net_pay=(8 * 15.24) - (9.42 + 19.42),
+            deductions=(9.42 + 19.42)
+        )
+
+    def test_service_charges_spanning_multiple_pay_periods(self):
+        emp_id = 34
+        add_salaried_emp_t = t.AddHourlyEmployeeTransaction(emp_id, 'Bill', 'Home', self.__db, 15.24)
+        add_salaried_emp_t.execute()
+        member_id = 7735
+        change_member_t = t.ChangeMemberTransaction(self.__db, emp_id, member_id, 9.42)
+        change_member_t.execute()
+        pay_date = date(2001, 11, 30)
+        add_service_charge_ts = [
+            t.AddServiceChargeTransaction(self.__db, date(2001, 11, 23), 19.42, member_id),
+            t.AddServiceChargeTransaction(self.__db, pay_date, 19.42, member_id),
+            t.AddServiceChargeTransaction(self.__db, date(2001, 12, 1), 19.42, member_id),
+        ]
+        for add_service_charge_t in add_service_charge_ts:
+            add_service_charge_t.execute()
+        add_time_card_t = t.AddTimeCardTransaction(pay_date, 8.0, emp_id, self.__db)
+        add_time_card_t.execute()
+        payday_t = t.PaydayTransaction(self.__db, pay_date)
+        payday_t.execute()
+        self.__validate_pay_check(
+            payday_t=payday_t,
+            emp_id=emp_id,
+            pay_date=pay_date,
+            start_date=date(2001, 11, 24),
+            gross_pay=(8 * 15.24),
+            net_pay=(8 * 15.24) - (9.42 + 19.42),
+            deductions=(9.42 + 19.42)
+        )
+
     def __validate_pay_check(self, payday_t : t.PaydayTransaction, emp_id: int, pay_date: date, start_date: date, gross_pay: float, net_pay: float, deductions: float):
         paycheck = payday_t.get_paycheck(emp_id)
         self.assertIsNotNone(paycheck)
